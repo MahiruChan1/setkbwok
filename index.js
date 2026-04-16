@@ -3,26 +3,37 @@ const app = express();
 const cors = require('cors');
 
 app.use(cors());
-app.use(express.json());
 
-// Tempat nyimpen status sementara di memori server
-let diceStatus = { mode: "normal" };
+let diceData = {
+    pola: "n", // Default normal
+    currentIndex: 0
+};
 
-// Endpoint untuk UserScript (BACA DATA)
 app.get('/status', (req, res) => {
-    res.json(diceStatus);
+    res.json(diceData);
 });
 
-// Endpoint untuk Bot Telegram Termux (TULIS DATA)
 app.get('/set-status', (req, res) => {
-    const newMode = req.query.mode;
-    if (newMode === 'b' || newMode === 'k' || newMode === 'normal') {
-        diceStatus.mode = newMode;
-        res.send(`Status berhasil diubah ke: ${newMode}`);
+    const mode = req.query.mode; // Ini nerima "b-k-b-b" dari bot
+    if (mode) {
+        diceData.pola = mode;
+        diceData.currentIndex = 0; // Reset index tiap kali ada pola baru
+        res.send("Pola berhasil di-set: " + mode);
     } else {
-        res.status(400).send("Mode salah, anjing!");
+        res.status(400).send("Mana modenya, anjing?");
     }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server C.R On di port ${PORT}`));
+// Tambahan: Endpoint buat geser antrean setelah dadu muncul
+app.get('/next', (req, res) => {
+    const p = diceData.pola.split('-');
+    if (diceData.currentIndex < p.length - 1) {
+        diceData.currentIndex++;
+    } else {
+        diceData.currentIndex = 0; // Balik ke awal kalau pola abis
+    }
+    res.json(diceData);
+});
+
+const PORT = process.env.PORT || 3009;
+app.listen(PORT, () => console.log(`Server C.R On`));
